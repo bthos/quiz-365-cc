@@ -83,6 +83,12 @@ function listenToGame() {
         const game = snapshot.val();
         if (!game) return;
         
+        // Clear timer when status changes (except when going to question, which will start a new timer)
+        if (game.status !== 'question' && playerTimerInterval) {
+            clearInterval(playerTimerInterval);
+            playerTimerInterval = null;
+        }
+        
         switch (game.status) {
             case 'question':
                 showAnswerScreen(game.currentQuestion);
@@ -106,6 +112,12 @@ let playerTimerInterval = null;
 let questionStartTime = 0;
 
 function showAnswerScreen(questionIndex) {
+    // Clear any existing timer first to prevent multiple timers running
+    if (playerTimerInterval) {
+        clearInterval(playerTimerInterval);
+        playerTimerInterval = null;
+    }
+    
     answerSubmitted = false;
     document.getElementById('playerCurrentQ').textContent = questionIndex + 1;
     document.getElementById('playerScore').textContent = currentScore;
@@ -117,26 +129,80 @@ function showAnswerScreen(questionIndex) {
     });
     
     showScreen('answerScreen');
-    startPlayerTimer();
+    
+    // Get question start time from Firebase to synchronize timer
+    gameRef.once('value', (snapshot) => {
+        const game = snapshot.val();
+        // Double-check timer is still cleared (in case this callback runs after another question starts)
+        if (playerTimerInterval) {
+            clearInterval(playerTimerInterval);
+            playerTimerInterval = null;
+        }
+        const serverQuestionStartTime = game.questionStartTime || Date.now();
+        startPlayerTimer(serverQuestionStartTime);
+    });
 }
 
-function startPlayerTimer() {
-    let timeLeft = 20;
-    questionStartTime = Date.now();
+function startPlayerTimer(serverQuestionStartTime) {
+    // Clear any existing timer
+    if (playerTimerInterval) {
+        clearInterval(playerTimerInterval);
+        playerTimerInterval = null;
+    }
     
-    document.getElementById('playerTimer').textContent = timeLeft;
+    // Store the question start time for this timer instance
+    const timerStartTime = serverQuestionStartTime;
+    questionStartTime = serverQuestionStartTime;
     
+    // Calculate initial remaining time
+    const elapsed = (Date.now() - timerStartTime) / 1000;
+    let timeLeft = Math.max(0, 20 - elapsed);
+    
+    // If time has already expired, submit immediately
+    if (timeLeft <= 0) {
+        if (!answerSubmitted) {
+            submitAnswer(-1); // No answer
+        }
+        return;
+    }
+    
+    // Display initial time (round down to show full seconds remaining)
+    let lastDisplayedSecond = Math.floor(timeLeft);
+    const timerEl = document.getElementById('playerTimer');
+    if (timerEl) {
+        timerEl.textContent = lastDisplayedSecond;
+    }
+    
+    // Update timer every 100ms for smooth countdown
     playerTimerInterval = setInterval(() => {
-        timeLeft--;
-        document.getElementById('playerTimer').textContent = timeLeft;
+        // Guard: Check if timer was cleared or if we're no longer on answer screen
+        if (!playerTimerInterval) {
+            return;
+        }
+        
+        // Recalculate time left based on the timer's start time for accuracy
+        const elapsed = (Date.now() - timerStartTime) / 1000;
+        timeLeft = Math.max(0, 20 - elapsed);
+        
+        // Only update display when the second value changes
+        const currentSecond = Math.floor(timeLeft);
+        if (currentSecond !== lastDisplayedSecond) {
+            lastDisplayedSecond = currentSecond;
+            const timerEl = document.getElementById('playerTimer');
+            if (timerEl) {
+                timerEl.textContent = currentSecond;
+            }
+        }
         
         if (timeLeft <= 0) {
             clearInterval(playerTimerInterval);
-            if (!answerSubmitted) {
+            playerTimerInterval = null;
+            // Only submit if we haven't already and we're still on the answer screen
+            if (!answerSubmitted && document.getElementById('answerScreen') && !document.getElementById('answerScreen').classList.contains('hidden')) {
                 submitAnswer(-1); // No answer
             }
         }
-    }, 1000);
+    }, 100);
 }
 
 function submitAnswer(answerIndex) {
@@ -175,6 +241,12 @@ function submitAnswer(answerIndex) {
 
 // ===== RESULT SCREEN =====
 function showQuestionResult(questionIndex) {
+    // Clear timer when showing results
+    if (playerTimerInterval) {
+        clearInterval(playerTimerInterval);
+        playerTimerInterval = null;
+    }
+    
     gameRef.once('value', (snapshot) => {
         const game = snapshot.val();
         const questions = game.questions;

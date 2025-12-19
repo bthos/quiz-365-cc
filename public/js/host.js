@@ -6,6 +6,8 @@ let currentQuestion = 0;
 let timerInterval = null;
 let timeLeft = 20;
 let questionStartTime = 0;
+let answerListener = null;
+let previousQuestionIndex = -1;
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -108,34 +110,102 @@ function showQuestion() {
         status: 'question'
     });
     
-    // Clear previous answers
-    gameRef.child('answers/' + currentQuestion).remove();
+    // Remove previous answer listener if it exists (use previousQuestionIndex)
+    if (answerListener && previousQuestionIndex >= 0) {
+        gameRef.child('answers/' + previousQuestionIndex).off('value', answerListener);
+        answerListener = null;
+    }
     
-    // Listen for answers
-    gameRef.child('answers/' + currentQuestion).on('value', (snapshot) => {
-        updateAnswerCounts(snapshot.val() || {});
+    // Clear previous answers and set up new listener after removal completes
+    gameRef.child('answers/' + currentQuestion).remove().then(() => {
+        // Listen for answers - set up listener after removal completes
+        answerListener = (snapshot) => {
+            const answers = snapshot.val();
+            // Only process if answers exist and is an object (not null from removal)
+            if (answers && typeof answers === 'object') {
+                updateAnswerCounts(answers);
+            } else {
+                // Reset counts to 0 if no answers
+                updateAnswerCounts({});
+            }
+        };
+        gameRef.child('answers/' + currentQuestion).on('value', answerListener);
+    }).catch((error) => {
+        console.error('Error removing answers:', error);
+        // Set up listener anyway
+        answerListener = (snapshot) => {
+            const answers = snapshot.val();
+            if (answers && typeof answers === 'object') {
+                updateAnswerCounts(answers);
+            } else {
+                updateAnswerCounts({});
+            }
+        };
+        gameRef.child('answers/' + currentQuestion).on('value', answerListener);
     });
     
+    // Store current question index for next cleanup
+    previousQuestionIndex = currentQuestion;
+    
+    // Ensure timer is fully stopped and reset before showing question
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    timeLeft = 20;
+    
     showScreen('questionScreen');
-    startTimer();
+    
+    // Small delay before starting timer to ensure Firebase syncs and players see the question
+    setTimeout(() => {
+        startTimer();
+    }, 500);
 }
 
 function startTimer() {
+    // Clear any existing timer interval to prevent multiple timers running
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    
+    // Ensure timeLeft is properly reset - double check it's positive
     timeLeft = 20;
     questionStartTime = Date.now();
     
+    // Verify timer elements exist
+    const timerTextEl = document.getElementById('timerText');
+    const timerFillEl = document.getElementById('timerFill');
+    if (!timerTextEl || !timerFillEl) {
+        console.error('Timer elements not found');
+        return;
+    }
+    
+    // Reset timer warning class
+    timerTextEl.classList.remove('warning');
+    
+    // Update display immediately to show correct initial value
     updateTimerDisplay();
     
+    // Guard: Ensure timeLeft is positive before starting
+    if (timeLeft <= 0) {
+        console.error('Timer timeLeft is invalid:', timeLeft);
+        timeLeft = 20; // Force reset
+        updateTimerDisplay();
+    }
+    
+    // Start the timer interval
     timerInterval = setInterval(() => {
         timeLeft -= 0.1;
         updateTimerDisplay();
         
         if (timeLeft <= 5) {
-            document.getElementById('timerText').classList.add('warning');
+            timerTextEl.classList.add('warning');
         }
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
+            timerInterval = null;
             showReveal();
         }
     }, 100);
@@ -148,23 +218,36 @@ function updateTimerDisplay() {
 }
 
 function updateAnswerCounts(answers) {
+    // Guard: Don't process if answers is null or invalid
+    if (!answers || typeof answers !== 'object') {
+        return;
+    }
+    
     const counts = [0, 0, 0, 0];
     Object.values(answers).forEach(a => {
-        if (a.answer >= 0 && a.answer <= 3) {
+        if (a && a.answer >= 0 && a.answer <= 3) {
             counts[a.answer]++;
         }
     });
     
     counts.forEach((count, i) => {
-        document.getElementById('count' + i).textContent = count;
+        const countEl = document.getElementById('count' + i);
+        if (countEl) {
+            countEl.textContent = count;
+        }
     });
     
     const total = Object.keys(answers).length;
-    document.getElementById('answeredCount').textContent = total;
+    const answeredCountEl = document.getElementById('answeredCount');
+    if (answeredCountEl) {
+        answeredCountEl.textContent = total;
+    }
     
-    // Auto-advance if everyone answered
-    if (total >= Object.keys(players).length && timeLeft > 0) {
+    // Auto-advance if everyone answered AND timer is running AND timeLeft is positive
+    const playerCount = Object.keys(players).length;
+    if (playerCount > 0 && total >= playerCount && timeLeft > 0 && timerInterval) {
         clearInterval(timerInterval);
+        timerInterval = null;
         setTimeout(() => showReveal(), 500);
     }
 }
@@ -236,7 +319,7 @@ function calculateScores() {
         const answers = snapshot.val() || {};
         const q = QUESTIONS[currentQuestion];
         
-        Object.entries(answers).forEach(([oderId, answer]) => {
+        Object.entries(answers).forEach(([playerId, answer]) => {
             if (answer.answer === q.correct) {
                 // Calculate points based on time
                 const timeTaken = (answer.timestamp - questionStartTime) / 1000;
