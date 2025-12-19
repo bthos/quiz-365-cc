@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>365 IQ Quiz - Host</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        
+        <!-- LOBBY SCREEN -->
+        <div class="screen" id="lobbyScreen">
+            <h1>🎮 Комната создана!</h1>
+            
+            <div class="game-pin">
+                <p>PIN код игры:</p>
+                <div class="pin-code" id="pinCode">------</div>
+                <p class="pin-url">Игроки заходят на: <strong id="gameUrl">loading...</strong></p>
+            </div>
+            
+            <div class="players-waiting">
+                <h3>Игроки в комнате: <span id="playerCount">0</span></h3>
+                <div class="players-grid" id="playersGrid">
+                    <!-- Players will appear here -->
+                </div>
+            </div>
+            
+            <button class="btn btn-start" id="startBtn" disabled onclick="startGame()">
+                ▶️ Начать игру
+            </button>
+            <p class="hint" id="startHint">Ожидание игроков...</p>
+        </div>
+        
+        <!-- QUESTION SCREEN -->
+        <div class="screen hidden" id="questionScreen">
+            <div class="host-header">
+                <div class="question-counter">
+                    Вопрос <span id="currentQ">1</span> / <span id="totalQ">15</span>
+                </div>
+                <div class="answers-count">
+                    Ответили: <span id="answeredCount">0</span> / <span id="totalPlayers">0</span>
+                </div>
+            </div>
+            
+            <div class="timer-container">
+                <div class="timer-bar">
+                    <div class="timer-fill" id="timerFill"></div>
+                </div>
+                <div class="timer-text" id="timerText">20</div>
+            </div>
+            
+            <div class="question-container">
+                <p class="question-text" id="questionText">Loading...</p>
+            </div>
+            
+            <div class="answers-grid host-answers" id="answersGrid">
+                <div class="answer-card a1">
+                    <span class="answer-icon">▲</span>
+                    <span class="answer-text" id="answer0">Answer 1</span>
+                    <span class="answer-count" id="count0">0</span>
+                </div>
+                <div class="answer-card a2">
+                    <span class="answer-icon">◆</span>
+                    <span class="answer-text" id="answer1">Answer 2</span>
+                    <span class="answer-count" id="count1">0</span>
+                </div>
+                <div class="answer-card a3">
+                    <span class="answer-icon">●</span>
+                    <span class="answer-text" id="answer2">Answer 3</span>
+                    <span class="answer-count" id="count2">0</span>
+                </div>
+                <div class="answer-card a4">
+                    <span class="answer-icon">■</span>
+                    <span class="answer-text" id="answer3">Answer 4</span>
+                    <span class="answer-count" id="count3">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ANSWER REVEAL SCREEN -->
+        <div class="screen hidden" id="revealScreen">
+            <h2 id="revealTitle">Правильный ответ:</h2>
+            <div class="correct-answer" id="correctAnswer">Answer</div>
+            
+            <div class="answer-stats" id="answerStats">
+                <!-- Stats bars will appear here -->
+            </div>
+            
+            <button class="btn btn-next" onclick="nextQuestion()">
+                Следующий вопрос →
+            </button>
+        </div>
+        
+        <!-- LEADERBOARD SCREEN -->
+        <div class="screen hidden" id="leaderboardScreen">
+            <h2>🏆 Таблица лидеров</h2>
+            <div class="leaderboard" id="leaderboard">
+                <!-- Leaderboard items -->
+            </div>
+            <button class="btn btn-next" onclick="showQuestion()">
+                Продолжить →
+            </button>
+        </div>
+        
+        <!-- FINAL RESULTS SCREEN -->
+        <div class="screen hidden" id="resultsScreen">
+            <div class="confetti" id="confetti"></div>
+            <h1>🎉 Игра окончена!</h1>
+            
+            <div class="podium">
+                <div class="podium-place second" id="place2">
+                    <div class="podium-avatar">🥈</div>
+                    <div class="podium-name">-</div>
+                    <div class="podium-score">0</div>
+                </div>
+                <div class="podium-place first" id="place1">
+                    <div class="podium-avatar">🥇</div>
+                    <div class="podium-name">-</div>
+                    <div class="podium-score">0</div>
+                </div>
+                <div class="podium-place third" id="place3">
+                    <div class="podium-avatar">🥉</div>
+                    <div class="podium-name">-</div>
+                    <div class="podium-score">0</div>
+                </div>
+            </div>
+            
+            <div class="full-leaderboard" id="fullLeaderboard">
+                <!-- All players -->
+            </div>
+            
+            <button class="btn btn-host" onclick="newGame()">
+                🔄 Новая игра
+            </button>
+        </div>
+        
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/questions.js"></script>
+    <script src="js/host.js"></script>
+</body>
+</html>

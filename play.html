@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>365 IQ Quiz - Play</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        
+        <!-- JOIN SCREEN -->
+        <div class="screen" id="joinScreen">
+            <h1>🎮 Присоединиться</h1>
+            
+            <div class="join-form">
+                <div class="input-group">
+                    <label>PIN код игры</label>
+                    <input type="text" id="pinInput" placeholder="000000" maxlength="6" 
+                           pattern="[0-9]*" inputmode="numeric">
+                </div>
+                
+                <div class="input-group">
+                    <label>Ваше имя</label>
+                    <input type="text" id="nameInput" placeholder="Введите имя" maxlength="20">
+                </div>
+                
+                <button class="btn btn-player" onclick="joinGame()">
+                    🚀 Войти в игру
+                </button>
+                
+                <p class="error-msg hidden" id="errorMsg">Ошибка подключения</p>
+            </div>
+        </div>
+        
+        <!-- WAITING SCREEN -->
+        <div class="screen hidden" id="waitingScreen">
+            <div class="waiting-animation">
+                <div class="spinner"></div>
+            </div>
+            <h2>Добро пожаловать, <span id="playerName">Player</span>!</h2>
+            <p>Ожидаем начала игры...</p>
+            <p class="player-count">Игроков в комнате: <span id="waitingCount">1</span></p>
+        </div>
+        
+        <!-- ANSWER SCREEN -->
+        <div class="screen hidden" id="answerScreen">
+            <div class="player-header">
+                <div class="player-score">
+                    <span id="playerScore">0</span> очков
+                </div>
+                <div class="player-timer" id="playerTimer">20</div>
+            </div>
+            
+            <p class="question-hint">Вопрос <span id="playerCurrentQ">1</span></p>
+            
+            <div class="answer-buttons" id="answerButtons">
+                <button class="answer-btn large a1" onclick="submitAnswer(0)" id="btn0">
+                    <span class="answer-icon">▲</span>
+                </button>
+                <button class="answer-btn large a2" onclick="submitAnswer(1)" id="btn1">
+                    <span class="answer-icon">◆</span>
+                </button>
+                <button class="answer-btn large a3" onclick="submitAnswer(2)" id="btn2">
+                    <span class="answer-icon">●</span>
+                </button>
+                <button class="answer-btn large a4" onclick="submitAnswer(3)" id="btn3">
+                    <span class="answer-icon">■</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- ANSWER SUBMITTED SCREEN -->
+        <div class="screen hidden" id="submittedScreen">
+            <div class="submitted-icon" id="submittedIcon">⏳</div>
+            <h2 id="submittedText">Ответ принят!</h2>
+            <p>Ожидаем других игроков...</p>
+        </div>
+        
+        <!-- RESULT SCREEN (per question) -->
+        <div class="screen hidden" id="resultScreen">
+            <div class="result-icon" id="resultIcon">✓</div>
+            <h2 id="resultText">Правильно!</h2>
+            <div class="result-points" id="resultPoints">+100</div>
+            <div class="result-total">
+                Всего: <span id="resultTotal">100</span> очков
+            </div>
+            <div class="result-position">
+                Позиция: <span id="resultPosition">1</span> место
+            </div>
+        </div>
+        
+        <!-- FINAL SCREEN -->
+        <div class="screen hidden" id="finalScreen">
+            <div class="final-position" id="finalPosition">🏆</div>
+            <h1 id="finalPlace">1 место!</h1>
+            <div class="final-score">
+                <span id="finalScore">0</span> очков
+            </div>
+            <div class="final-stats">
+                <div class="stat">
+                    <span class="stat-value" id="finalCorrect">0</span>
+                    <span class="stat-label">правильных</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="finalAccuracy">0%</span>
+                    <span class="stat-label">точность</span>
+                </div>
+            </div>
+            <button class="btn btn-player" onclick="playAgain()">
+                🔄 Играть снова
+            </button>
+        </div>
+        
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/player.js"></script>
+</body>
+</html>

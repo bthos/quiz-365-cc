@@ -1,0 +1,4 @@
+.specstory
+.vscode
+node_modules
+firebase-debug.log

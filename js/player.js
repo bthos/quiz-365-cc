@@ -1,0 +1,288 @@
+// ===== PLAYER STATE =====
+let gamePin = '';
+let playerId = '';
+let playerName = '';
+let gameRef = null;
+let playerRef = null;
+let currentScore = 0;
+let correctCount = 0;
+
+// ===== JOIN GAME =====
+function joinGame() {
+    gamePin = document.getElementById('pinInput').value.trim();
+    playerName = document.getElementById('nameInput').value.trim();
+    
+    if (!gamePin || gamePin.length !== 6) {
+        showError('Введите 6-значный PIN код');
+        return;
+    }
+    
+    if (!playerName) {
+        showError('Введите ваше имя');
+        return;
+    }
+    
+    // Check if game exists
+    gameRef = database.ref('games/' + gamePin);
+    
+    gameRef.once('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            showError('Игра не найдена');
+            return;
+        }
+        
+        const game = snapshot.val();
+        if (game.status !== 'waiting') {
+            showError('Игра уже началась');
+            return;
+        }
+        
+        // Join game
+        playerRef = gameRef.child('players').push();
+        playerId = playerRef.key;
+        
+        playerRef.set({
+            name: playerName,
+            score: 0,
+            correct: 0,
+            joinedAt: Date.now()
+        });
+        
+        // Remove player on disconnect
+        playerRef.onDisconnect().remove();
+        
+        // Show waiting screen
+        document.getElementById('playerName').textContent = playerName;
+        showScreen('waitingScreen');
+        
+        // Listen for game status
+        listenToGame();
+    });
+}
+
+function showError(message) {
+    const errorMsg = document.getElementById('errorMsg');
+    errorMsg.textContent = message;
+    errorMsg.classList.remove('hidden');
+    
+    setTimeout(() => {
+        errorMsg.classList.add('hidden');
+    }, 3000);
+}
+
+// ===== GAME LISTENERS =====
+function listenToGame() {
+    // Listen for player count
+    gameRef.child('players').on('value', (snapshot) => {
+        const count = Object.keys(snapshot.val() || {}).length;
+        document.getElementById('waitingCount').textContent = count;
+    });
+    
+    // Listen for game status changes
+    gameRef.on('value', (snapshot) => {
+        const game = snapshot.val();
+        if (!game) return;
+        
+        switch (game.status) {
+            case 'question':
+                showAnswerScreen(game.currentQuestion);
+                break;
+            case 'reveal':
+                showQuestionResult(game.currentQuestion);
+                break;
+            case 'leaderboard':
+                // Keep showing result
+                break;
+            case 'finished':
+                showFinalResult();
+                break;
+        }
+    });
+}
+
+// ===== ANSWER SCREEN =====
+let answerSubmitted = false;
+let playerTimerInterval = null;
+let questionStartTime = 0;
+
+function showAnswerScreen(questionIndex) {
+    answerSubmitted = false;
+    document.getElementById('playerCurrentQ').textContent = questionIndex + 1;
+    document.getElementById('playerScore').textContent = currentScore;
+    
+    // Enable buttons
+    document.querySelectorAll('.answer-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('selected');
+    });
+    
+    showScreen('answerScreen');
+    startPlayerTimer();
+}
+
+function startPlayerTimer() {
+    let timeLeft = 20;
+    questionStartTime = Date.now();
+    
+    document.getElementById('playerTimer').textContent = timeLeft;
+    
+    playerTimerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('playerTimer').textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(playerTimerInterval);
+            if (!answerSubmitted) {
+                submitAnswer(-1); // No answer
+            }
+        }
+    }, 1000);
+}
+
+function submitAnswer(answerIndex) {
+    if (answerSubmitted) return;
+    answerSubmitted = true;
+    
+    clearInterval(playerTimerInterval);
+    
+    // Disable all buttons
+    document.querySelectorAll('.answer-btn').forEach(btn => {
+        btn.disabled = true;
+    });
+    
+    // Highlight selected
+    if (answerIndex >= 0) {
+        document.getElementById('btn' + answerIndex).classList.add('selected');
+    }
+    
+    // Get current question index
+    gameRef.once('value', (snapshot) => {
+        const game = snapshot.val();
+        const questionIndex = game.currentQuestion;
+        
+        // Submit answer to Firebase
+        gameRef.child('answers/' + questionIndex + '/' + playerId).set({
+            answer: answerIndex,
+            timestamp: Date.now()
+        });
+        
+        // Show submitted screen
+        document.getElementById('submittedIcon').textContent = answerIndex >= 0 ? '✓' : '⏰';
+        document.getElementById('submittedText').textContent = answerIndex >= 0 ? 'Ответ принят!' : 'Время вышло!';
+        showScreen('submittedScreen');
+    });
+}
+
+// ===== RESULT SCREEN =====
+function showQuestionResult(questionIndex) {
+    gameRef.once('value', (snapshot) => {
+        const game = snapshot.val();
+        const questions = game.questions;
+        const q = questions[questionIndex];
+        
+        // Get player's answer
+        const answers = game.answers?.[questionIndex] || {};
+        const myAnswer = answers[playerId];
+        
+        if (!myAnswer) {
+            // No answer submitted
+            document.getElementById('resultIcon').textContent = '⏰';
+            document.getElementById('resultText').textContent = 'Время вышло!';
+            document.getElementById('resultPoints').textContent = '+0';
+        } else if (myAnswer.answer === q.correct) {
+            // Correct!
+            const points = myAnswer.points || 0;
+            currentScore += points;
+            correctCount++;
+            
+            document.getElementById('resultIcon').textContent = '✓';
+            document.getElementById('resultText').textContent = 'Правильно!';
+            document.getElementById('resultPoints').textContent = '+' + points;
+            document.getElementById('resultPoints').style.color = '#6bcb77';
+        } else {
+            // Wrong
+            document.getElementById('resultIcon').textContent = '✗';
+            document.getElementById('resultText').textContent = 'Неправильно!';
+            document.getElementById('resultPoints').textContent = '+0';
+            document.getElementById('resultPoints').style.color = '#ff6b6b';
+        }
+        
+        document.getElementById('resultTotal').textContent = currentScore;
+        
+        // Calculate position
+        const players = game.players || {};
+        const sorted = Object.entries(players)
+            .map(([id, p]) => ({ id, score: p.score || 0 }))
+            .sort((a, b) => b.score - a.score);
+        
+        const position = sorted.findIndex(p => p.id === playerId) + 1;
+        document.getElementById('resultPosition').textContent = position;
+        
+        showScreen('resultScreen');
+    });
+}
+
+// ===== FINAL RESULT =====
+function showFinalResult() {
+    gameRef.child('players').once('value', (snapshot) => {
+        const players = snapshot.val() || {};
+        const sorted = Object.entries(players)
+            .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
+            .sort((a, b) => b.score - a.score);
+        
+        const position = sorted.findIndex(p => p.id === playerId) + 1;
+        const myData = players[playerId] || {};
+        
+        // Position icon
+        let positionIcon = position;
+        if (position === 1) positionIcon = '🥇';
+        else if (position === 2) positionIcon = '🥈';
+        else if (position === 3) positionIcon = '🥉';
+        
+        document.getElementById('finalPosition').textContent = positionIcon;
+        document.getElementById('finalPlace').textContent = position + ' место!';
+        document.getElementById('finalScore').textContent = myData.score || 0;
+        document.getElementById('finalCorrect').textContent = myData.correct || 0;
+        
+        const accuracy = Math.round(((myData.correct || 0) / QUESTIONS.length) * 100);
+        document.getElementById('finalAccuracy').textContent = accuracy + '%';
+        
+        showScreen('finalScreen');
+    });
+}
+
+function playAgain() {
+    // Clean up
+    if (playerRef) {
+        playerRef.remove();
+    }
+    
+    // Reset state
+    gamePin = '';
+    playerId = '';
+    playerName = '';
+    currentScore = 0;
+    correctCount = 0;
+    
+    // Clear inputs
+    document.getElementById('pinInput').value = '';
+    document.getElementById('nameInput').value = '';
+    
+    showScreen('joinScreen');
+}
+
+// ===== UTILITIES =====
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(screenId).classList.remove('hidden');
+}
+
+// Auto-focus PIN input
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pinInput').focus();
+});
+
+// PIN input formatting
+document.getElementById('pinInput')?.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
