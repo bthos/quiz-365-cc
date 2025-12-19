@@ -5,6 +5,10 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      { "source": "/host", "destination": "/host.html" },
+      { "source": "/play", "destination": "/play.html" }
     ]
   },
   "database": {
