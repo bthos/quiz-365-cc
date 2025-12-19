@@ -1,4 +1,10 @@
-.specstory
-.vscode
-node_modules
+# Firebase build and config folders
+.firebase/
 firebase-debug.log
+
+# Local project settings
+.specstory/
+.vscode/
+
+# Node dependencies
+node_modules/

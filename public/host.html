@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,35 +11,35 @@
         
         <!-- LOBBY SCREEN -->
         <div class="screen" id="lobbyScreen">
-            <h1>🎮 Комната создана!</h1>
+            <h1>🎮 Room created!</h1>
             
             <div class="game-pin">
-                <p>PIN код игры:</p>
+                <p>Game PIN code:</p>
                 <div class="pin-code" id="pinCode">------</div>
-                <p class="pin-url">Игроки заходят на: <strong id="gameUrl">loading...</strong></p>
+                <p class="pin-url">Players join at: <strong id="gameUrl">loading...</strong></p>
             </div>
             
             <div class="players-waiting">
-                <h3>Игроки в комнате: <span id="playerCount">0</span></h3>
+                <h3>Players in room: <span id="playerCount">0</span></h3>
                 <div class="players-grid" id="playersGrid">
                     <!-- Players will appear here -->
                 </div>
             </div>
             
             <button class="btn btn-start" id="startBtn" disabled onclick="startGame()">
-                ▶️ Начать игру
+                ▶️ Start game
             </button>
-            <p class="hint" id="startHint">Ожидание игроков...</p>
+            <p class="hint" id="startHint">Waiting for players...</p>
         </div>
         
         <!-- QUESTION SCREEN -->
         <div class="screen hidden" id="questionScreen">
             <div class="host-header">
                 <div class="question-counter">
-                    Вопрос <span id="currentQ">1</span> / <span id="totalQ">15</span>
+                    Question <span id="currentQ">1</span> / <span id="totalQ">15</span>
                 </div>
                 <div class="answers-count">
-                    Ответили: <span id="answeredCount">0</span> / <span id="totalPlayers">0</span>
+                    Answered: <span id="answeredCount">0</span> / <span id="totalPlayers">0</span>
                 </div>
             </div>
             
@@ -80,7 +80,7 @@
         
         <!-- ANSWER REVEAL SCREEN -->
         <div class="screen hidden" id="revealScreen">
-            <h2 id="revealTitle">Правильный ответ:</h2>
+            <h2 id="revealTitle">Correct answer:</h2>
             <div class="correct-answer" id="correctAnswer">Answer</div>
             
             <div class="answer-stats" id="answerStats">
@@ -88,25 +88,25 @@
             </div>
             
             <button class="btn btn-next" onclick="nextQuestion()">
-                Следующий вопрос →
+                Next question →
             </button>
         </div>
         
         <!-- LEADERBOARD SCREEN -->
         <div class="screen hidden" id="leaderboardScreen">
-            <h2>🏆 Таблица лидеров</h2>
+            <h2>🏆 Leaderboard</h2>
             <div class="leaderboard" id="leaderboard">
                 <!-- Leaderboard items -->
             </div>
             <button class="btn btn-next" onclick="showQuestion()">
-                Продолжить →
+                Continue →
             </button>
         </div>
         
         <!-- FINAL RESULTS SCREEN -->
         <div class="screen hidden" id="resultsScreen">
             <div class="confetti" id="confetti"></div>
-            <h1>🎉 Игра окончена!</h1>
+            <h1>🎉 Game over!</h1>
             
             <div class="podium">
                 <div class="podium-place second" id="place2">
@@ -131,7 +131,7 @@
             </div>
             
             <button class="btn btn-host" onclick="newGame()">
-                🔄 Новая игра
+                🔄 New game
             </button>
         </div>
         
