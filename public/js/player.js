@@ -13,12 +13,12 @@ function joinGame() {
     playerName = document.getElementById('nameInput').value.trim();
     
     if (!gamePin || gamePin.length !== 6) {
-        showError('Введите 6-значный PIN код');
+        showError('Enter a 6-digit PIN code');
         return;
     }
     
     if (!playerName) {
-        showError('Введите ваше имя');
+        showError('Enter your name');
         return;
     }
     
@@ -27,13 +27,13 @@ function joinGame() {
     
     gameRef.once('value', (snapshot) => {
         if (!snapshot.exists()) {
-            showError('Игра не найдена');
+            showError('Game not found');
             return;
         }
         
         const game = snapshot.val();
         if (game.status !== 'waiting') {
-            showError('Игра уже началась');
+            showError('Game has already started');
             return;
         }
         
@@ -168,7 +168,7 @@ function submitAnswer(answerIndex) {
         
         // Show submitted screen
         document.getElementById('submittedIcon').textContent = answerIndex >= 0 ? '✓' : '⏰';
-        document.getElementById('submittedText').textContent = answerIndex >= 0 ? 'Ответ принят!' : 'Время вышло!';
+        document.getElementById('submittedText').textContent = answerIndex >= 0 ? 'Answer received!' : 'Time is up!';
         showScreen('submittedScreen');
     });
 }
@@ -187,7 +187,7 @@ function showQuestionResult(questionIndex) {
         if (!myAnswer) {
             // No answer submitted
             document.getElementById('resultIcon').textContent = '⏰';
-            document.getElementById('resultText').textContent = 'Время вышло!';
+            document.getElementById('resultText').textContent = 'Time is up!';
             document.getElementById('resultPoints').textContent = '+0';
         } else if (myAnswer.answer === q.correct) {
             // Correct!
@@ -196,13 +196,13 @@ function showQuestionResult(questionIndex) {
             correctCount++;
             
             document.getElementById('resultIcon').textContent = '✓';
-            document.getElementById('resultText').textContent = 'Правильно!';
+            document.getElementById('resultText').textContent = 'Correct!';
             document.getElementById('resultPoints').textContent = '+' + points;
             document.getElementById('resultPoints').style.color = '#6bcb77';
         } else {
             // Wrong
             document.getElementById('resultIcon').textContent = '✗';
-            document.getElementById('resultText').textContent = 'Неправильно!';
+            document.getElementById('resultText').textContent = 'Incorrect!';
             document.getElementById('resultPoints').textContent = '+0';
             document.getElementById('resultPoints').style.color = '#ff6b6b';
         }
@@ -240,7 +240,7 @@ function showFinalResult() {
         else if (position === 3) positionIcon = '🥉';
         
         document.getElementById('finalPosition').textContent = positionIcon;
-        document.getElementById('finalPlace').textContent = position + ' место!';
+        document.getElementById('finalPlace').textContent = position + (position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th') + ' place!';
         document.getElementById('finalScore').textContent = myData.score || 0;
         document.getElementById('finalCorrect').textContent = myData.correct || 0;
         

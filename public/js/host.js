@@ -65,10 +65,10 @@ function updatePlayersDisplay() {
     
     if (count >= 1) {
         startBtn.disabled = false;
-        hint.textContent = `${count} игрок(ов) готовы!`;
+        hint.textContent = `${count} player(s) ready!`;
     } else {
         startBtn.disabled = true;
-        hint.textContent = 'Ожидание игроков...';
+        hint.textContent = 'Waiting for players...';
     }
 }
 
@@ -314,15 +314,15 @@ function showFinalResults() {
         // Podium
         if (sorted[0]) {
             document.querySelector('#place1 .podium-name').textContent = sorted[0].name;
-            document.querySelector('#place1 .podium-score').textContent = sorted[0].score + ' очков';
+            document.querySelector('#place1 .podium-score').textContent = sorted[0].score + ' points';
         }
         if (sorted[1]) {
             document.querySelector('#place2 .podium-name').textContent = sorted[1].name;
-            document.querySelector('#place2 .podium-score').textContent = sorted[1].score + ' очков';
+            document.querySelector('#place2 .podium-score').textContent = sorted[1].score + ' points';
         }
         if (sorted[2]) {
             document.querySelector('#place3 .podium-name').textContent = sorted[2].name;
-            document.querySelector('#place3 .podium-score').textContent = sorted[2].score + ' очков';
+            document.querySelector('#place3 .podium-score').textContent = sorted[2].score + ' points';
         }
         
         // Full leaderboard
