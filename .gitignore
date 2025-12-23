@@ -3,6 +3,7 @@
 firebase-debug.log
 
 # Local project settings
+.cursorindex*
 .specstory/
 .vscode/
 

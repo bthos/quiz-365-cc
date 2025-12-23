@@ -270,11 +270,11 @@ function showReveal() {
         }
     });
     
-    // Calculate and update scores
-    calculateScores();
-    
-    // Show stats
-    showAnswerStats();
+    // Calculate and update scores, then show stats
+    calculateScores().then(() => {
+        // Show stats after scores are calculated
+        showAnswerStats();
+    });
     
     setTimeout(() => {
         showScreen('revealScreen');
@@ -315,31 +315,51 @@ function showAnswerStats() {
 }
 
 function calculateScores() {
-    gameRef.child('answers/' + currentQuestion).once('value', (snapshot) => {
-        const answers = snapshot.val() || {};
-        const q = QUESTIONS[currentQuestion];
-        
-        Object.entries(answers).forEach(([playerId, answer]) => {
-            if (answer.answer === q.correct) {
-                // Calculate points based on time
-                const timeTaken = (answer.timestamp - questionStartTime) / 1000;
-                const timeBonus = Math.max(0, 20 - timeTaken) / 20;
-                const points = Math.round(500 + timeBonus * 500); // 500-1000 points
-                
-                // Update player score
-                gameRef.child('players/' + playerId + '/score').transaction(current => {
-                    return (current || 0) + points;
-                });
-                
-                gameRef.child('players/' + playerId + '/correct').transaction(current => {
-                    return (current || 0) + 1;
-                });
-                
-                // Store points earned for this question
-                gameRef.child('answers/' + currentQuestion + '/' + playerId + '/points').set(points);
-            } else {
-                gameRef.child('answers/' + currentQuestion + '/' + playerId + '/points').set(0);
+    return new Promise((resolve) => {
+        gameRef.child('answers/' + currentQuestion).once('value', (snapshot) => {
+            const answers = snapshot.val() || {};
+            const q = QUESTIONS[currentQuestion];
+            
+            if (Object.keys(answers).length === 0) {
+                resolve();
+                return;
             }
+            
+            const updatePromises = [];
+            
+            Object.entries(answers).forEach(([playerId, answer]) => {
+                if (answer.answer === q.correct) {
+                    // Calculate points based on time
+                    const timeTaken = (answer.timestamp - questionStartTime) / 1000;
+                    const timeBonus = Math.max(0, 20 - timeTaken) / 20;
+                    const points = Math.round(500 + timeBonus * 500); // 500-1000 points
+                    
+                    // Update player score
+                    const scorePromise = gameRef.child('players/' + playerId + '/score').transaction(current => {
+                        return (current || 0) + points;
+                    });
+                    updatePromises.push(scorePromise);
+                    
+                    const correctPromise = gameRef.child('players/' + playerId + '/correct').transaction(current => {
+                        return (current || 0) + 1;
+                    });
+                    updatePromises.push(correctPromise);
+                    
+                    // Store points earned for this question
+                    const pointsPromise = gameRef.child('answers/' + currentQuestion + '/' + playerId + '/points').set(points);
+                    updatePromises.push(pointsPromise);
+                } else {
+                    const pointsPromise = gameRef.child('answers/' + currentQuestion + '/' + playerId + '/points').set(0);
+                    updatePromises.push(pointsPromise);
+                }
+            });
+            
+            // Wait for all updates to complete
+            Promise.all(updatePromises).then(() => {
+                resolve();
+            }).catch(() => {
+                resolve(); // Resolve anyway to not block the flow
+            });
         });
     });
 }
@@ -357,6 +377,13 @@ function nextQuestion() {
 function showLeaderboard() {
     gameRef.update({ status: 'leaderboard' });
     
+    // Small delay to ensure scores are updated in Firebase
+    setTimeout(() => {
+        updateLeaderboardDisplay();
+    }, 500);
+}
+
+function updateLeaderboardDisplay() {
     gameRef.child('players').once('value', (snapshot) => {
         const playersData = snapshot.val() || {};
         const sorted = Object.entries(playersData)
@@ -364,6 +391,8 @@ function showLeaderboard() {
             .sort((a, b) => b.score - a.score);
         
         const leaderboard = document.getElementById('leaderboard');
+        if (!leaderboard) return;
+        
         leaderboard.innerHTML = sorted.slice(0, 10).map((player, i) => {
             let rankClass = '';
             let rankIcon = i + 1;
@@ -382,6 +411,36 @@ function showLeaderboard() {
         }).join('');
         
         showScreen('leaderboardScreen');
+        
+        // Refresh leaderboard once more after a short delay to catch any late score updates
+        setTimeout(() => {
+            gameRef.child('players').once('value', (snapshot) => {
+                const playersData = snapshot.val() || {};
+                const sorted = Object.entries(playersData)
+                    .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
+                    .sort((a, b) => b.score - a.score);
+                
+                const leaderboard = document.getElementById('leaderboard');
+                if (!leaderboard) return;
+                
+                leaderboard.innerHTML = sorted.slice(0, 10).map((player, i) => {
+                    let rankClass = '';
+                    let rankIcon = i + 1;
+                    
+                    if (i === 0) { rankClass = 'top-1'; rankIcon = '🥇'; }
+                    else if (i === 1) { rankClass = 'top-2'; rankIcon = '🥈'; }
+                    else if (i === 2) { rankClass = 'top-3'; rankIcon = '🥉'; }
+                    
+                    return `
+                        <div class="leaderboard-item ${rankClass}" style="animation-delay: ${i * 0.1}s">
+                            <div class="leaderboard-rank">${rankIcon}</div>
+                            <div class="leaderboard-name">${player.name}</div>
+                            <div class="leaderboard-score">${player.score}</div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }, 1000);
     });
 }
 

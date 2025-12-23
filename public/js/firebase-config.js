@@ -10,5 +10,16 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+let database;
+try {
+  firebase.initializeApp(firebaseConfig);
+  database = firebase.database();
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+  // Show error if on player page
+  if (document.getElementById('errorMsg')) {
+    const errorMsg = document.getElementById('errorMsg');
+    errorMsg.textContent = 'Connection error: Failed to initialize Firebase';
+    errorMsg.classList.remove('hidden');
+  }
+}

@@ -22,6 +22,12 @@ function joinGame() {
         return;
     }
     
+    // Check if database is initialized
+    if (!database) {
+        showError('Connection error: Firebase not initialized');
+        return;
+    }
+    
     // Check if game exists
     gameRef = database.ref('games/' + gamePin);
     
@@ -46,6 +52,9 @@ function joinGame() {
             score: 0,
             correct: 0,
             joinedAt: Date.now()
+        }).catch((error) => {
+            console.error('Error joining game:', error);
+            showError('Connection error: Failed to join game');
         });
         
         // Remove player on disconnect
@@ -57,6 +66,9 @@ function joinGame() {
         
         // Listen for game status
         listenToGame();
+    }).catch((error) => {
+        console.error('Error checking game:', error);
+        showError('Connection error: Failed to connect to game');
     });
 }
 
@@ -349,9 +361,20 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.remove('hidden');
 }
 
-// Auto-focus PIN input
+// Auto-focus PIN input and ensure error message is hidden
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('pinInput').focus();
+    // Ensure error message is hidden on load
+    const errorMsg = document.getElementById('errorMsg');
+    if (errorMsg) {
+        errorMsg.classList.add('hidden');
+        errorMsg.textContent = '';
+    }
+    
+    // Focus PIN input
+    const pinInput = document.getElementById('pinInput');
+    if (pinInput) {
+        pinInput.focus();
+    }
 });
 
 // PIN input formatting
