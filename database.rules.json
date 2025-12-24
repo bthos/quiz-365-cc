@@ -1,6 +1,92 @@
 {
   "rules": {
-    ".read": "now < 1768690800000",  // 2026-1-18
-    ".write": "now < 1768690800000",  // 2026-1-18
+    "games": {
+      "$gamePin": {
+        // Allow reading game data if game exists
+        ".read": "data.exists()",
+        
+        // Allow writing game data (host creates game or updates during gameplay)
+        // Can create new game OR update existing game
+        ".write": true,
+        
+        // Game metadata - readable by all
+        "status": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.isString() && (newData.val() === 'waiting' || newData.val() === 'playing' || newData.val() === 'question' || newData.val() === 'reveal' || newData.val() === 'leaderboard' || newData.val() === 'finished')"
+        },
+        "currentQuestion": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "questionStartTime": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "createdAt": {
+          ".read": true,
+          ".write": "!data.exists()",
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "questions": {
+          ".read": true,
+          ".write": "!data.exists()"
+        },
+        
+        // Players - anyone can read, add themselves, and scores can be updated
+        "players": {
+          ".read": true,
+          "$playerId": {
+            // Allow creating new player OR updating existing player (for score updates)
+            ".write": true,
+            // Validate individual fields - allow partial updates
+            "name": {
+              ".write": "!data.exists()",
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            },
+            "score": {
+              ".write": true,
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "correct": {
+              ".write": true,
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "joinedAt": {
+              ".write": "!data.exists()",
+              ".validate": "newData.isNumber() && newData.val() > 0"
+            }
+          }
+        },
+        
+        // Answers - readable by all, writable by players for their own answers
+        "answers": {
+          ".read": true,
+          "$questionIndex": {
+            // Allow removal (for cleanup) and writing answers
+            ".write": true,
+            "$playerId": {
+              // Allow writing answer OR updating points OR removing (null)
+              ".write": true,
+              // Validate individual fields - allow partial updates and removals
+              "answer": {
+                ".write": true,
+                ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 3 && root.child('games').child($gamePin).child('players').child($playerId).exists()"
+              },
+              "timestamp": {
+                ".write": true,
+                ".validate": "newData.isNumber() && newData.val() > 0"
+              },
+              "points": {
+                ".write": true,
+                ".validate": "newData.isNumber() && newData.val() >= 0"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
