@@ -384,64 +384,34 @@ function showLeaderboard() {
 }
 
 function updateLeaderboardDisplay() {
-    gameRef.child('players').once('value', (snapshot) => {
-        const playersData = snapshot.val() || {};
-        const sorted = Object.entries(playersData)
-            .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
-            .sort((a, b) => b.score - a.score);
+    // Use the players variable that's already maintained by the real-time listener
+    // This ensures we always have the latest data without timing issues from Firebase reads
+    const playersData = players || {};
+    const sorted = Object.entries(playersData)
+        .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
+        .sort((a, b) => b.score - a.score);
+    
+    const leaderboard = document.getElementById('leaderboard');
+    if (!leaderboard) return;
+    
+    leaderboard.innerHTML = sorted.slice(0, 10).map((player, i) => {
+        let rankClass = '';
+        let rankIcon = i + 1;
         
-        const leaderboard = document.getElementById('leaderboard');
-        if (!leaderboard) return;
+        if (i === 0) { rankClass = 'top-1'; rankIcon = '🥇'; }
+        else if (i === 1) { rankClass = 'top-2'; rankIcon = '🥈'; }
+        else if (i === 2) { rankClass = 'top-3'; rankIcon = '🥉'; }
         
-        leaderboard.innerHTML = sorted.slice(0, 10).map((player, i) => {
-            let rankClass = '';
-            let rankIcon = i + 1;
-            
-            if (i === 0) { rankClass = 'top-1'; rankIcon = '🥇'; }
-            else if (i === 1) { rankClass = 'top-2'; rankIcon = '🥈'; }
-            else if (i === 2) { rankClass = 'top-3'; rankIcon = '🥉'; }
-            
-            return `
-                <div class="leaderboard-item ${rankClass}" style="animation-delay: ${i * 0.1}s">
-                    <div class="leaderboard-rank">${rankIcon}</div>
-                    <div class="leaderboard-name">${player.name}</div>
-                    <div class="leaderboard-score">${player.score}</div>
-                </div>
-            `;
-        }).join('');
-        
-        showScreen('leaderboardScreen');
-        
-        // Refresh leaderboard once more after a short delay to catch any late score updates
-        setTimeout(() => {
-            gameRef.child('players').once('value', (snapshot) => {
-                const playersData = snapshot.val() || {};
-                const sorted = Object.entries(playersData)
-                    .map(([id, p]) => ({ id, name: p.name, score: p.score || 0 }))
-                    .sort((a, b) => b.score - a.score);
-                
-                const leaderboard = document.getElementById('leaderboard');
-                if (!leaderboard) return;
-                
-                leaderboard.innerHTML = sorted.slice(0, 10).map((player, i) => {
-                    let rankClass = '';
-                    let rankIcon = i + 1;
-                    
-                    if (i === 0) { rankClass = 'top-1'; rankIcon = '🥇'; }
-                    else if (i === 1) { rankClass = 'top-2'; rankIcon = '🥈'; }
-                    else if (i === 2) { rankClass = 'top-3'; rankIcon = '🥉'; }
-                    
-                    return `
-                        <div class="leaderboard-item ${rankClass}" style="animation-delay: ${i * 0.1}s">
-                            <div class="leaderboard-rank">${rankIcon}</div>
-                            <div class="leaderboard-name">${player.name}</div>
-                            <div class="leaderboard-score">${player.score}</div>
-                        </div>
-                    `;
-                }).join('');
-            });
-        }, 1000);
-    });
+        return `
+            <div class="leaderboard-item ${rankClass}" style="animation-delay: ${i * 0.1}s">
+                <div class="leaderboard-rank">${rankIcon}</div>
+                <div class="leaderboard-name">${player.name}</div>
+                <div class="leaderboard-score">${player.score}</div>
+            </div>
+        `;
+    }).join('');
+    
+    showScreen('leaderboardScreen');    
 }
 
 function showFinalResults() {
